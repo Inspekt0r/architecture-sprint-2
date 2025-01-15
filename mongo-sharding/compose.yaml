@@ -24,6 +24,7 @@ services:
     container_name: shard01
     image: mongo:latest
     volumes:
+      - ./scripts:/scripts
       - shard011_data:/data/db
     command: mongod --port 27019 --shardsvr --replSet shard-01
 
@@ -31,6 +32,7 @@ services:
     container_name: shard02
     image: mongo:latest
     volumes:
+      - ./scripts:/scripts
       - shard022_data:/data/db
     command: mongod --port 27020 --shardsvr --replSet shard-02
 

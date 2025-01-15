@@ -7,7 +7,22 @@
 ```shell
 docker compose up -d
 ```
+Инициализация сервера конфигураций:
+```shell
+docker exec -it shard01 mongosh --port 27019
+```
 
+```shell
+rs.initiate(
+  {
+    _id : "rs-config-server",
+       configsvr: true,
+    members: [
+      { _id : 0, host : "configSrv:27017" }
+    ]
+  }
+);
+```
 Настраиваем шардирование 
 
 Первый шард
