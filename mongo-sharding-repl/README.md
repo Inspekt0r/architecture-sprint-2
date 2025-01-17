@@ -2,46 +2,58 @@
 
 ## Как запустить
 
-Не забудьте переключится в текущий каталог через cd mongo-sharding
+Не забудьте переключится в текущий каталог через cd mongo-sharding-repl
 
 Запускаем mongodb и приложение
 
 ```shell
 docker compose up -d
 ```
-Инициализация сервера конфигураций:
+
+Инициализируем конфиг сервер:
 ```shell
-docker exec -it config mongosh --port 27017
+ docker exec -it config-01 mongosh --port 27017
 ```
 
 ```shell
-rs.initiate({_id: "rs-config-server", configsvr: true, version: 1, members: [ { _id: 0, host : 'configSrv:27017' } ] });
-
-exit();
+rs.initiate({_id: "rs-config-server", configsvr: true, version: 1, members: [ { _id: 0, host : 'configSrv01:27017' }, { _id: 1, host : 'configSrv02:27017' }, { _id: 2, host : 'configSrv03:27017' } ] })
 ```
 
 Настраиваем шардирование 
+
 Первый шард
 
 ```shell
-docker exec -it shard01 mongosh --port 27019
+docker exec -it shard01-node-a mongosh --port 27019
 ```
 
 ```shell
-rs.initiate( { _id: "shard-01", members: [{ _id: 0, host: "shard01:27019" } ] } );
+rs.initiate( { _id: "rs0", members: [ {_id: 0, host: "shard01-a:27019"} , { _id: 1, host: "shard01-b:27019"}, {_id: 2, host: "shard01-c:27019"}]}); 
 exit();
 ```
 
 Второй шард
 
 ```shell
-docker exec -it shard02 mongosh --port 27020
+docker exec -it shard02-node-a mongosh --port 27020
 ```
 
 ```shell
-rs.initiate( { _id: "shard-02", members: [{ _id: 0, host: "shard02:27020" } ] } );
+rs.initiate( { _id: "rs1", members: [ {_id: 0, host: "shard02-a:27020"} , { _id: 1, host: "shard02-b:27020"}, {_id: 2, host: "shard02-c:27020"}]}); 
 exit();
 ```
+
+Третий шард
+
+```shell
+docker exec -it shard03-node-a mongosh --port 27022
+```
+
+```shell
+rs.initiate( { _id: "rs2", members: [ {_id: 0, host: "shard03-a:27022"} , { _id: 1, host: "shard03-b:27022"}, {_id: 2, host: "shard03-c:27022"}]}); 
+exit();
+```
+
 
 Инициализация роутера, включение шардирования (хэшового) и наполнение его тестовыми данными:
 
@@ -50,30 +62,18 @@ docker exec -it router mongosh --port 27021
 ```
 
 ```shell
-sh.addShard("shard-01/shard01:27019");
-sh.addShard("shard-02/shard02:27020");
+sh.addShard("rs0/shard01-a:27019");
+sh.addShard("rs1/shard02-a:27020");
+sh.addShard("rs2/shard03-a:27022");
 
 sh.enableSharding("somedb")
 sh.shardCollection("somedb.helloDoc", { "name" : "hashed" } )
 
 use somedb
-for(var i = 0; i < 3000; i++) db.helloDoc.insert({age:i, name:"mango"+i})
+for(var i = 0; i < 1000; i++) db.helloDoc.insert({age:i, name:"mango"+i})
 
 exit();
 ```
-
-Для проверки данных на шардах можно подключиться через:
-```shell
-docker exec -it shard01 mongosh --port 27022
-use somedb
-db.helloDoc.countDocuments()
-```
-```shell
-docker exec -it shard02 mongosh --port 27020
-use somedb
-db.helloDoc.countDocuments()
-```
-
 
 
 ## Как проверить
