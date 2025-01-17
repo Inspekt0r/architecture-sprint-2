@@ -2,6 +2,8 @@
 
 ## Как запустить
 
+Не забудьте переключится в текущий каталог через cd mongo-sharding
+
 Запускаем mongodb и приложение
 
 ```shell
@@ -9,22 +11,16 @@ docker compose up -d
 ```
 Инициализация сервера конфигураций:
 ```shell
-docker exec -it shard01 mongosh --port 27019
+docker exec -it config mongosh --port 27017
 ```
 
 ```shell
-rs.initiate(
-  {
-    _id : "rs-config-server",
-       configsvr: true,
-    members: [
-      { _id : 0, host : "configSrv:27017" }
-    ]
-  }
-);
-```
-Настраиваем шардирование 
+rs.initiate({_id: "rs-config-server", configsvr: true, version: 1, members: [ { _id: 0, host : 'configSrv:27017' } ] });
 
+exit();
+```
+
+Настраиваем шардирование 
 Первый шард
 
 ```shell
@@ -43,7 +39,7 @@ docker exec -it shard02 mongosh --port 27020
 ```
 
 ```shell
- rs.initiate( { _id: "shard-02", members: [{ _id: 0, host: "shard02:27020" } ] } );
+rs.initiate( { _id: "shard-02", members: [{ _id: 0, host: "shard02:27020" } ] } );
 exit();
 ```
 
@@ -61,10 +57,23 @@ sh.enableSharding("somedb")
 sh.shardCollection("somedb.helloDoc", { "name" : "hashed" } )
 
 use somedb
-for(var i = 0; i < 1000; i++) db.helloDoc.insert({age:i, name:"mango"+i})
+for(var i = 0; i < 3000; i++) db.helloDoc.insert({age:i, name:"mango"+i})
 
 exit();
 ```
+
+Для проверки данных на шардах можно подключиться через:
+```shell
+docker exec -it shard01 mongosh --port 27022
+use somedb
+db.helloDoc.countDocuments()
+```
+```shell
+docker exec -it shard02 mongosh --port 27020
+use somedb
+db.helloDoc.countDocuments()
+```
+
 
 
 ## Как проверить
